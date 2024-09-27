@@ -65,6 +65,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", buffer=0.2, 
             if first_word:
                 sentence_start = word.start
                 if word_idx == 0:
+                    # Start of the sentence, use buffer before the start of the word
                     sentence_start = max(sentence_start - buffer, 0)
                 else:
                     previous_word_end = words_list[word_idx - 1].end
@@ -74,15 +75,26 @@ def format_audio_list(audio_files, asr_model, target_language="en", buffer=0.2, 
             else:
                 sentence += word.word
 
+            # When the sentence ends (punctuation), process it as a complete sentence
             if word.word[-1] in ["!", "。", ".", "?"]:
-                sentence = sentence[1:]
+                sentence = sentence[1:]  # Remove leading space if present
                 sentence = multilingual_cleaners(sentence, target_language)
+
                 audio_file_name, _ = os.path.splitext(os.path.basename(audio_path))
                 audio_file = f"{audio_file_name}_{str(i).zfill(8)}.wav"
 
-                word_end = min(word.end + buffer, (words_list[word_idx + 1].start if word_idx + 1 < len(words_list) else wav.shape[0] / sr))
+                # Set the end of the sentence to just before the next word starts, or the end of the waveform
+                if word_idx + 1 < len(words_list):
+                    next_word_start = words_list[word_idx + 1].start
+                    word_end = min(next_word_start - buffer, next_word_start)
+                else:
+                    # If no next word, use the end of the waveform
+                    word_end = wav.shape[0] / sr
 
+                # Clip the audio between sentence_start and word_end
                 audio = wav[int(sr * sentence_start):int(sr * word_end)].unsqueeze(0)
+                
+                # Only save if the audio clip is at least 1/3 second long
                 if audio.size(-1) >= sr / 3:
                     # Output metadata for debug purposes
                     print(f"Audio File: {audio_file}, Text: {sentence}, Speaker: {speaker_name}")
@@ -96,6 +108,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", buffer=0.2, 
         display_count += 1
 
     return metadata, audio_total_size
+
 
 # Main function for command line execution
 if __name__ == "__main__":
