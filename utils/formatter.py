@@ -32,7 +32,7 @@ def list_files(basePath, validExts=None, contains=None):
                 audioPath = os.path.join(rootDir, filename)
                 yield audioPath
 
-def format_audio_list(audio_files, asr_model, target_language="en", buffer=0.2, eval_percentage=0.15, speaker_name="coqui", display_limit=10):
+def format_audio_list(audio_files, asr_model, target_language="en", out_path=None, buffer=0.2, eval_percentage=0.15, speaker_name="coqui", display_limit=10):
     audio_total_size = 0
     metadata = {"audio_file": [], "text": [], "speaker_name": []}
 
