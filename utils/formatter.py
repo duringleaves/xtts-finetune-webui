@@ -91,7 +91,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
         wav = wav.squeeze()
         audio_total_size += (wav.size(-1) / sr)
 
-        segments, _ = asr_model.transcribe(audio_path, vad_filter=True, word_ttimestamps=True, language=target_language)
+        segments, _ = asr_model.transcribe(audio_path, vad_filter=True, word_timestamps=True, language=target_language)
         segments = list(segments)
         i = 0
         sentence = ""
