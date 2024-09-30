@@ -91,7 +91,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
         wav = wav.squeeze()
         audio_total_size += (wav.size(-1) / sr)
 
-        segments, _= asr_model.transcribe(audio_path, vad_filter=True, word_timestamps=True, language=target_language)
+        segments, _ = asr_model.transcribe(audio_path, vad_filter=True, word_timestamps=True, language=target_language)
         segments = list(segments)
         i = 0
         sentence = ""
@@ -122,13 +122,12 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
                 audio_file_name, _= os.path.splitext(os.path.basename(audio_path))
                 audio_file = f"wavs/{audio_file_name}_{str(i).zfill(8)}.wav"
 
-                # Adjust end time to be just before the start of the next word
+                # Adjust end time to ensure the last word captures its full duration
                 if word_idx + 1 < len(words_list):
                     next_word_start = words_list[word_idx + 1].start
                 else:
-                    next_word_start = (wav.shape[0] - 1) / sr
+                    next_word_start = (wav.shape[0] - 1) / sr  # Use end of the file for the last word
 
-                # Adjust word end time accordingly
                 word_end = min(next_word_start, word.end + buffer)
 
                 absolute_path = os.path.join(out_path, audio_file)
