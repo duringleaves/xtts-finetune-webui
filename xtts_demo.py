@@ -192,7 +192,8 @@ if __name__ == "__main__":
 
             speaker_name = gr.Textbox(
                  label="Speaker name (eg. vic_casual)",
-                 value="coqui"
+                 value="coqui",
+                 interactive=True
             )
             
             audio_folder_path = gr.Textbox(
