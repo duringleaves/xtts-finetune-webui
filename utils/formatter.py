@@ -137,6 +137,10 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
 
                 word_end = min(next_word_start, word.end + buffer)
 
+                # Convert timestamps to sample indices more carefully
+                start_sample = int(sr * sentence_start)
+                end_sample = int(sr * word_end)
+
                 absolute_path = os.path.join(out_path, audio_file)
                 os.makedirs(os.path.dirname(absolute_path), exist_ok=True)
 
@@ -144,12 +148,13 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
                 print(f"Processing segment {i}:")
                 print(f"Sentence: {sentence}")
                 print(f"Start time: {sentence_start}, End time: {word_end}")
+                print(f"Start sample: {start_sample}, End sample: {end_sample}")
                 print(f"Audio file: {absolute_path}\n")
 
                 i += 1
                 first_word = True
 
-                audio = wav[int(sr * sentence_start):int(sr * word_end)].unsqueeze(0)
+                audio = wav[start_sample:end_sample].unsqueeze(0)
                 if audio.size(-1) >= sr / 3:
                     torchaudio.save(absolute_path, audio, sr)
                 else:
@@ -193,4 +198,3 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
     final_eval_set.sort_values('audio_file').to_csv(eval_metadata_path, sep='|', index=False)
 
     return train_metadata_path, eval_metadata_path, audio_total_size
-
