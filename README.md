@@ -1,8 +1,7 @@
 # xtts-finetune-webui
+This is my customized version of xtts-finetune-webui.
 
-This webui is a slightly modified copy of the [official webui](https://github.com/coqui-ai/TTS/pull/3296) for finetune xtts.
-
-If you are looking for an option for normal XTTS use look here [https://github.com/daswer123/xtts-webui](https://github.com/daswer123/xtts-webui)
+I added support for custom speaker names, plentiful debugging in the console, upgrade gradio lib to bypass a problem, and most critically, buffering on the audio files to minimize the prematurely truncated sentences due to crummy timestamps from whisper.
 
 ## TODO
 - [ ] Add the ability to use via console 
