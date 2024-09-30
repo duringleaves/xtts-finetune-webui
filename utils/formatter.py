@@ -8,46 +8,28 @@ from glob import glob
 from tqdm import tqdm
 
 from TTS.tts.layers.xtts.tokenizer import multilingual_cleaners
-# Add support for JA train
-# from utils.tokenizer import multilingual_cleaners
-
 import torch
-import torchaudio
-# torch.set_num_threads(1)
-
 
 torch.set_num_threads(16)
-import os
 
 audio_types = (".wav", ".mp3", ".flac")
 
 def find_latest_best_model(folder_path):
-        search_path = os.path.join(folder_path, '**', 'best_model.pth')
-        files = glob(search_path, recursive=True)
-        latest_file = max(files, key=os.path.getctime, default=None)
-        return latest_file
-
+    search_path = os.path.join(folder_path, '**', 'best_model.pth')
+    files = glob(search_path, recursive=True)
+    latest_file = max(files, key=os.path.getctime, default=None)
+    return latest_file
 
 def list_audios(basePath, contains=None):
-    # return the set of files that are valid
     return list_files(basePath, validExts=audio_types, contains=contains)
 
 def list_files(basePath, validExts=None, contains=None):
-    # loop over the directory structure
     for (rootDir, dirNames, filenames) in os.walk(basePath):
-        # loop over the filenames in the current directory
         for filename in filenames:
-            # if the contains string is not none and the filename does not contain
-            # the supplied string, then ignore the file
             if contains is not None and filename.find(contains) == -1:
                 continue
-
-            # determine the file extension of the current file
             ext = filename[filename.rfind("."):].lower()
-
-            # check to see if the file is an audio and should be processed
             if validExts is None or ext.endswith(validExts):
-                # construct the path to the audio and yield it
                 audioPath = os.path.join(rootDir, filename)
                 yield audioPath
 
@@ -140,19 +122,21 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
                 audio_file_name, _= os.path.splitext(os.path.basename(audio_path))
                 audio_file = f"wavs/{audio_file_name}_{str(i).zfill(8)}.wav"
 
+                # Adjust end time to be just before the start of the next word
                 if word_idx + 1 < len(words_list):
                     next_word_start = words_list[word_idx + 1].start
                 else:
                     next_word_start = (wav.shape[0] - 1) / sr
 
-                word_end = min((word.end + next_word_start) / 2, word.end + buffer)
+                # Adjust word end time accordingly
+                word_end = min(next_word_start, word.end + buffer)
 
                 absolute_path = os.path.join(out_path, audio_file)
                 os.makedirs(os.path.dirname(absolute_path), exist_ok=True)
                 i += 1
                 first_word = True
 
-                audio = wav[int(sr*sentence_start):int(sr *word_end)].unsqueeze(0)
+                audio = wav[int(sr * sentence_start):int(sr * word_end)].unsqueeze(0)
                 if audio.size(-1) >= sr / 3:
                     torchaudio.save(absolute_path, audio, sr)
                 else:
@@ -187,7 +171,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
     combined_eval_df = pandas.concat([existing_eval_df, new_data_df], ignore_index=True).drop_duplicates().reset_index(drop=True)
 
     combined_train_df_shuffled = combined_train_df.sample(frac=1)
-    num_val_samples = int(len(combined_train_df_shuffled)* eval_percentage)
+    num_val_samples = int(len(combined_train_df_shuffled) * eval_percentage)
 
     final_eval_set = combined_train_df_shuffled[:num_val_samples]
     final_training_set = combined_train_df_shuffled[num_val_samples:]
