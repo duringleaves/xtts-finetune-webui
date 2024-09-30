@@ -33,7 +33,7 @@ def list_files(basePath, validExts=None, contains=None):
                 audioPath = os.path.join(rootDir, filename)
                 yield audioPath
 
-def format_audio_list(audio_files, asr_model, target_language="en", out_path=None, buffer=0.2, eval_percentage=0.15, speaker_name="coqui", gradio_progress=None):
+def format_audio_list(audio_files, asr_model, target_language="en", out_path=None, buffer=0.4, eval_percentage=0.15, speaker_name="coqui", gradio_progress=None):
     audio_total_size = 0
     os.makedirs(out_path, exist_ok=True)
 
@@ -120,7 +120,9 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
             else:
                 sentence += word.word
 
-            if word.word[-1] in ["!", "。", ".", "?"]:
+            # Check if it's the last word of the sentence
+            is_last_word = word.word[-1] in ["!", "。", ".", "?"]
+            if is_last_word:
                 sentence = sentence[1:]
                 sentence = multilingual_cleaners(sentence, target_language)
                 audio_file_name, _= os.path.splitext(os.path.basename(audio_path))
@@ -130,7 +132,8 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
                 if word_idx + 1 < len(words_list):
                     next_word_start = words_list[word_idx + 1].start
                 else:
-                    next_word_start = (wav.shape[0] - 1) / sr  # Use end of the file for the last word
+                    # Increase buffer for the last word to prevent truncation
+                    next_word_start = (wav.shape[0] - 1) / sr + 0.2  # Add 0.2 seconds extra for safety
 
                 word_end = min(next_word_start, word.end + buffer)
 
@@ -190,3 +193,4 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
     final_eval_set.sort_values('audio_file').to_csv(eval_metadata_path, sep='|', index=False)
 
     return train_metadata_path, eval_metadata_path, audio_total_size
+
