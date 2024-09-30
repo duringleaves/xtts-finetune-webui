@@ -91,7 +91,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
         wav = wav.squeeze()
         audio_total_size += (wav.size(-1) / sr)
 
-        segments, _ = asr_model.transcribe(audio_path, vad_filter=True, word_timestamps=True, language=target_language)
+        segments, _ = asr_model.transcribe(audio_path, vad_filter=True, word_ttimestamps=True, language=target_language)
         segments = list(segments)
         i = 0
         sentence = ""
@@ -132,6 +132,13 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
 
                 absolute_path = os.path.join(out_path, audio_file)
                 os.makedirs(os.path.dirname(absolute_path), exist_ok=True)
+
+                # Debugging print statements for timestamps and file info
+                print(f"Processing segment {i}:")
+                print(f"Sentence: {sentence}")
+                print(f"Start time: {sentence_start}, End time: {word_end}")
+                print(f"Audio file: {absolute_path}\n")
+
                 i += 1
                 first_word = True
 
