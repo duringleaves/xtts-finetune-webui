@@ -37,6 +37,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
     audio_total_size = 0
     os.makedirs(out_path, exist_ok=True)
 
+    print("Checking lang.txt")
     lang_file_path = os.path.join(out_path, "lang.txt")
     current_language = None
     if os.path.exists(lang_file_path):
@@ -50,6 +51,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
     else:
         print("Existing language matches target language")
 
+    print("Checking for existing metadata_train.csv and metadata_eval.csv")
     metadata = {"audio_file": [], "text": [], "speaker_name": []}
     train_metadata_path = os.path.join(out_path, "metadata_train.csv")
     eval_metadata_path = os.path.join(out_path, "metadata_eval.csv")
@@ -93,6 +95,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
 
         segments, _ = asr_model.transcribe(audio_path, vad_filter=True, word_timestamps=True, language=target_language)
         segments = list(segments)
+        print(f"Found {len(segments)} segments")
         i = 0
         sentence = ""
         sentence_start = None
@@ -101,6 +104,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
         for _, segment in enumerate(segments):
             words = list(segment.words)
             words_list.extend(words)
+            print(f"Found {len(words)} words")
 
         for word_idx, word in enumerate(words_list):
             if first_word:
