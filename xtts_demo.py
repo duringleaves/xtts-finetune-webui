@@ -270,7 +270,7 @@ if __name__ == "__main__":
                             compute_type = "float32"
                         
                         asr_model = WhisperModel(whisper_model, device=device, compute_type=compute_type)
-                        train_meta, eval_meta, audio_total_size = format_audio_list(audio_files, speaker_name=speaker_name.value, asr_model=asr_model, target_language=language, out_path=out_path, gradio_progress=progress)
+                        train_meta, eval_meta, audio_total_size = format_audio_list(audio_files, asr_model=asr_model, target_language=language, out_path=out_path, gradio_progress=progress, speaker_name)
                     except:
                         traceback.print_exc()
                         error = traceback.format_exc()
@@ -605,7 +605,8 @@ if __name__ == "__main__":
                     whisper_model,
                     out_path,
                     train_csv,
-                    eval_csv
+                    eval_csv,
+                    speaker_name
                 ],
                 outputs=[
                     progress_data,
