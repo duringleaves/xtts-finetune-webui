@@ -270,7 +270,15 @@ if __name__ == "__main__":
                             compute_type = "float32"
                         
                         asr_model = WhisperModel(whisper_model, device=device, compute_type=compute_type)
-                        train_meta, eval_meta, audio_total_size = format_audio_list(audio_files, asr_model=asr_model, target_language=language, out_path=out_path, speaker_name=speaker_name, gradio_progress=progress)
+                        train_meta, eval_meta, audio_total_size = format_audio_list(
+                             audio_files, 
+                             asr_model=asr_model, 
+                             target_language=language, 
+                             out_path=out_path, 
+                             speaker_name=speaker_name,  # Explicitly pass this as a keyword argument
+                             gradio_progress=progress
+                         )
+
                     except:
                         traceback.print_exc()
                         error = traceback.format_exc()
@@ -597,23 +605,23 @@ if __name__ == "__main__":
                     reference_audio = gr.Audio(label="Reference audio used.")
 
             prompt_compute_btn.click(
-                fn=preprocess_dataset,
-                inputs=[
-                    upload_file,
-                    audio_folder_path,
-                    lang,
-                    whisper_model,
-                    out_path,
-                    train_csv,
-                    eval_csv,
-                    speaker_name
-                ],
-                outputs=[
-                    progress_data,
-                    train_csv,
-                    eval_csv,
-                ],
-            )
+               fn=preprocess_dataset,
+               inputs=[
+                  upload_file,
+                  audio_folder_path,
+                  lang,
+                  whisper_model,
+                  out_path,
+                  train_csv,
+                  eval_csv,
+                  speaker_name  # Ensure speaker_name component is passed here
+               ],
+               outputs=[
+                  progress_data,
+                  train_csv,
+                  eval_csv,
+               ],
+               )
 
 
             load_params_btn.click(
