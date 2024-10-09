@@ -154,7 +154,7 @@ def train_gpt(custom_model,version, language, num_epochs, batch_size, grad_acumm
         print_step=50,
         plot_step=100,
         log_model_step=100,
-        save_step=1000,
+        save_step=10000, #changed to save only every 10k steps to save space.
         save_n_checkpoints=1,
         save_checkpoints=True,
         # target_loss="loss",
