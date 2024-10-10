@@ -4,9 +4,7 @@ import torchaudio
 import pandas
 from faster_whisper import WhisperModel
 from glob import glob
-
 from tqdm import tqdm
-
 from TTS.tts.layers.xtts.tokenizer import multilingual_cleaners
 import torch
 
@@ -98,7 +96,6 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
         print(f"Found {len(segments)} segments")
         i = 0
         sentence = ""
-        sentence_start = None
         first_word = True
         words_list = []
         for _, segment in enumerate(segments):
@@ -108,13 +105,8 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
 
         for word_idx, word in enumerate(words_list):
             if first_word:
+                # Use the exact start time for the sentence, no buffer at the start
                 sentence_start = word.start
-                if word_idx == 0:
-                    sentence_start = max(sentence_start - buffer, 0)
-                else:
-                    previous_word_end = words_list[word_idx - 1].end
-                    sentence_start = max(sentence_start - buffer, (previous_word_end + sentence_start) / 2)
-
                 sentence = word.word
                 first_word = False
             else:
@@ -137,7 +129,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
 
                 word_end = min(next_word_start, word.end + buffer)
 
-                # Convert timestamps to sample indices more carefully
+                # Convert timestamps to sample indices
                 start_sample = int(sr * sentence_start)
                 end_sample = int(sr * word_end)
 
