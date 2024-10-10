@@ -7,6 +7,7 @@ from glob import glob
 
 from tqdm import tqdm
 
+from TTS.tts.layers.xtts.tokenizer import multilingual_cleaners
 import torch
 
 torch.set_num_threads(16)
