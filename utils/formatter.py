@@ -7,7 +7,7 @@ from glob import glob
 
 from tqdm import tqdm
 
-from TTS.tts.layers.xtts.tokenizer import multilingual_cleaners
+from TTS.tts.layers.xtts.tokenizer import multilingual_cleaners  # Keep this as required
 import torch
 
 torch.set_num_threads(16)
@@ -37,7 +37,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
     audio_total_size = 0
     os.makedirs(out_path, exist_ok=True)
 
-    # Prepare the path for the full timestamped transcript export
+    # New functionality: Prepare the path for the full timestamped transcript export
     transcript_path = os.path.join(out_path, "full_transcript.csv")
     transcript_data = {"audio_file": [], "start_time": [], "end_time": [], "word": []}
 
@@ -107,14 +107,14 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
             words_list.extend(words)
             print(f"Found {len(words)} words in segment.")
 
-        # Save each word's start and end time for troubleshooting
+        # New functionality: Save each word's start and end time for troubleshooting
         for word in words_list:
             transcript_data["audio_file"].append(audio_file_name_without_ext)
             transcript_data["start_time"].append(word.start)
             transcript_data["end_time"].append(word.end)
             transcript_data["word"].append(word.word)
 
-        # Process each sentence as before
+        # Existing sentence processing and saving logic
         i = 0
         sentence = ""
         sentence_start = None
@@ -138,7 +138,6 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
                 sentence = multilingual_cleaners(sentence, target_language)
                 audio_file_name = f"wavs/{audio_file_name_without_ext}_{str(i).zfill(8)}.wav"
 
-                # Adjust the end time to ensure the last word is captured fully
                 if word_idx + 1 < len(words_list):
                     next_word_start = words_list[word_idx + 1].start
                 else:
@@ -163,7 +162,7 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
                 i += 1
                 first_word = True
 
-    # Save the transcript data as a CSV for comparison
+    # New functionality: Save the transcript data as a CSV for comparison
     transcript_df = pandas.DataFrame(transcript_data)
     transcript_df.to_csv(transcript_path, index=False)
 
