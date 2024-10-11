@@ -4,14 +4,11 @@ import torchaudio
 import pandas
 from faster_whisper import WhisperModel
 from glob import glob
-
 from tqdm import tqdm
-
-from TTS.tts.layers.xtts.tokenizer import multilingual_cleaners  # Keep this as required
+from TTS.tts.layers.xtts.tokenizer import multilingual_cleaners
 import torch
 
 torch.set_num_threads(16)
-
 audio_types = (".wav", ".mp3", ".flac")
 
 def find_latest_best_model(folder_path):
@@ -33,15 +30,10 @@ def list_files(basePath, validExts=None, contains=None):
                 audioPath = os.path.join(rootDir, filename)
                 yield audioPath
 
-def format_audio_list(audio_files, asr_model, target_language="en", out_path=None, buffer=0.4, eval_percentage=0.15, speaker_name="coqui", gradio_progress=None):
+def format_audio_list(audio_files, asr_model, target_language="en", out_path=None, buffer=0.2, eval_percentage=0.15, speaker_name="coqui", gradio_progress=None):
     audio_total_size = 0
     os.makedirs(out_path, exist_ok=True)
 
-    # Sentence-level transcript export path
-    transcript_path = os.path.join(out_path, "sentence_transcript.csv")
-    transcript_data = {"audio_file": [], "sentence_start": [], "sentence_end": [], "sentence": []}
-
-    print("Checking lang.txt")
     lang_file_path = os.path.join(out_path, "lang.txt")
     current_language = None
     if os.path.exists(lang_file_path):
@@ -55,7 +47,6 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
     else:
         print("Existing language matches target language")
 
-    print("Checking for existing metadata_train.csv and metadata_eval.csv")
     metadata = {"audio_file": [], "text": [], "speaker_name": []}
     train_metadata_path = os.path.join(out_path, "metadata_train.csv")
     eval_metadata_path = os.path.join(out_path, "metadata_eval.csv")
@@ -97,22 +88,17 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
         wav = wav.squeeze()
         audio_total_size += (wav.size(-1) / sr)
 
-        segments, _ = asr_model.transcribe(audio_path, vad_filter=True, word_timestamps=True, language=target_language)
+        segments, _= asr_model.transcribe(audio_path, vad_filter=True, word_timestamps=True, language=target_language)
         segments = list(segments)
-        print(f"Found {len(segments)} segments")
-
-        words_list = []
-        for segment in segments:
-            words = list(segment.words)
-            words_list.extend(words)
-            print(f"Found {len(words)} words in segment.")
-
-        # Sentence processing logic (group words into sentences)
         i = 0
         sentence = ""
         sentence_start = None
         first_word = True
-        sentence_end = None
+        words_list = []
+        for _, segment in enumerate(segments):
+            words = list(segment.words)
+            words_list.extend(words)
+
         for word_idx, word in enumerate(words_list):
             if first_word:
                 sentence_start = word.start
@@ -125,27 +111,68 @@ def format_audio_list(audio_files, asr_model, target_language="en", out_path=Non
                 sentence = word.word
                 first_word = False
             else:
-                sentence += " " + word.word
+                sentence += word.word
 
-            is_last_word = word.word[-1] in ["!", ".", "?"]
-            if is_last_word:
+            if word.word[-1] in ["!", "。", ".", "?"]:
+                sentence = sentence[1:]
                 sentence = multilingual_cleaners(sentence, target_language)
+                audio_file_name, _= os.path.splitext(os.path.basename(audio_path))
+                audio_file = f"wavs/{audio_file_name}_{str(i).zfill(8)}.wav"
 
-                sentence_end = word.end + buffer
+                if word_idx + 1 < len(words_list):
+                    next_word_start = words_list[word_idx + 1].start
+                else:
+                    next_word_start = (wav.shape[0] - 1) / sr
 
-                # Store sentence data in the transcript_data
-                transcript_data["audio_file"].append(audio_file_name_without_ext)
-                transcript_data["sentence_start"].append(sentence_start)
-                transcript_data["sentence_end"].append(sentence_end)
-                transcript_data["sentence"].append(sentence)
+                # Add a buffer to ensure the final word is not cut off
+                word_end = min(next_word_start - 0.01, word.end + 0.4) #0.4 second buffer, or just before the next segment start time
 
-                # Reset for the next sentence
-                first_word = True
+                absolute_path = os.path.join(out_path, audio_file)
+                os.makedirs(os.path.dirname(absolute_path), exist_ok=True)
                 i += 1
+                first_word = True
 
-    # Save the sentence-level transcript to a CSV
-    transcript_df = pandas.DataFrame(transcript_data)
-    transcript_df.to_csv(transcript_path, index=False)
+                audio = wav[int(sr*sentence_start):int(sr * word_end)].unsqueeze(0)
+                if audio.size(-1) >= sr / 3:
+                    torchaudio.save(absolute_path, audio, sr)
+                else:
+                    continue
 
-    # Return the original 3 values as expected
+                metadata["audio_file"].append(audio_file)
+                metadata["text"].append(sentence)
+                metadata["speaker_name"].append(speaker_name)
+
+                df = pandas.DataFrame(metadata)
+
+                mode = 'w' if not os.path.exists(train_metadata_path) else 'a'
+                header = not os.path.exists(train_metadata_path)
+                df.to_csv(train_metadata_path, sep="|", index=False, mode=mode, header=header)
+
+                mode = 'w' if not os.path.exists(eval_metadata_path) else 'a'
+                header = not os.path.exists(eval_metadata_path)
+                df.to_csv(eval_metadata_path, sep="|", index=False, mode=mode, header=header)
+
+                metadata = {"audio_file": [], "text": [], "speaker_name": []}
+
+    if os.path.exists(train_metadata_path) and os.path.exists(eval_metadata_path):
+        existing_train_df = existing_metadata['train']
+        existing_eval_df = existing_metadata['eval']
+    else:
+        existing_train_df = pandas.DataFrame(columns=["audio_file", "text", "speaker_name"])
+        existing_eval_df = pandas.DataFrame(columns=["audio_file", "text", "speaker_name"])
+
+    new_data_df = pandas.read_csv(train_metadata_path, sep="|")
+
+    combined_train_df = pandas.concat([existing_train_df, new_data_df], ignore_index=True).drop_duplicates().reset_index(drop=True)
+    combined_eval_df = pandas.concat([existing_eval_df, new_data_df], ignore_index=True).drop_duplicates().reset_index(drop=True)
+
+    combined_train_df_shuffled = combined_train_df.sample(frac=1)
+    num_val_samples = int(len(combined_train_df_shuffled)* eval_percentage)
+
+    final_eval_set = combined_train_df_shuffled[:num_val_samples]
+    final_training_set = combined_train_df_shuffled[num_val_samples:]
+
+    final_training_set.sort_values('audio_file').to_csv(train_metadata_path, sep='|', index=False)
+    final_eval_set.sort_values('audio_file').to_csv(eval_metadata_path, sep='|', index=False)
+
     return train_metadata_path, eval_metadata_path, audio_total_size
