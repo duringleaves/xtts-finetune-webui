@@ -650,7 +650,8 @@ class VoiceBpeTokenizer:
         limit = self.char_limits.get(lang, 250)
         if len(txt) > limit:
             print(
-                f"[!] Warning: The text length {txt} exceeds the character limit of {limit} for language '{lang}', this might cause truncated audio."
+                f"[!] Warning: The text length {len(txt)} exceeds the character limit of {limit} for language '{lang}'.\n"
+                f"Offending text:\n{txt}"
             )
 
     def preprocess_text(self, txt, lang):
