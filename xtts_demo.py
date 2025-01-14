@@ -699,10 +699,14 @@ if __name__ == "__main__":
                 outputs=[progress_load,xtts_checkpoint,xtts_config,xtts_vocab,xtts_speaker,speaker_reference_audio],
             )
 
-    demo.launch(
-        share=True, #I always want to be able to access it.
-        debug=False,
-        server_port=args.port,
-        # inweb=True,
-        # server_name="localhost"
-    )
+    try:
+        demo.launch(
+            share=True,
+            debug=True,
+            server_port=args.port,
+            server_name="0.0.0.0"
+        )
+    except KeyboardInterrupt:
+        print("Gracefully shutting down...")
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
